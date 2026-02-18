@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "jsx": "react",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "lib": ["dom", "es2017"],
+    "types": ["react", "react-dom"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

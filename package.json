@@ -1,0 +1,24 @@
+{
+  "name": "sharepoint-library-ratings-webpart",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SPFx custom web part for viewing and updating SharePoint library ratings",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "@fluentui/react": "^8.122.11",
+    "@microsoft/sp-core-library": "^1.19.0",
+    "@microsoft/sp-lodash-subset": "^1.19.0",
+    "@microsoft/sp-property-pane": "^1.19.0",
+    "@microsoft/sp-webpart-base": "^1.19.0",
+    "@microsoft/sp-http": "^1.19.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}
