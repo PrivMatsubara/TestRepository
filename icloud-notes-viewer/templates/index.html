@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>iCloud Notes Viewer</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;background:#f2f2f7;height:100vh;display:flex;flex-direction:column;overflow:hidden;color:#1c1c1e}
+
+.header{background:#1c1c1e;color:#fff;padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px}
+.header h1{font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px}
+.header-right{display:flex;align-items:center;gap:8px}
+.badge{background:#3a3a3c;color:#ebebf5;padding:3px 10px;border-radius:10px;font-size:12px}
+
+.body{display:flex;flex:1;overflow:hidden}
+
+.sidebar{width:280px;background:#fff;display:flex;flex-direction:column;border-right:1px solid #e5e5ea;flex-shrink:0}
+.sidebar-search{padding:10px 12px;border-bottom:1px solid #e5e5ea}
+.sidebar-search input{width:100%;padding:7px 10px;border:1px solid #d1d1d6;border-radius:8px;font-size:13px;outline:none;background:#f2f2f7;color:#1c1c1e}
+.sidebar-search input:focus{border-color:#007aff;background:#fff}
+.note-list{flex:1;overflow-y:auto}
+.note-item{padding:10px 14px;border-bottom:1px solid #f2f2f7;cursor:pointer;transition:background .1s}
+.note-item:hover{background:#f5f5f7}
+.note-item.active{background:#e8f0ff;border-left:3px solid #007aff}
+.note-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#1c1c1e;margin-bottom:3px}
+.note-meta{font-size:11px;color:#8e8e93;display:flex;gap:6px;align-items:center}
+.note-folder{background:#f2f2f7;padding:1px 6px;border-radius:6px;font-size:10px}
+
+.content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.content-header{background:#fff;border-bottom:1px solid #e5e5ea;padding:12px 20px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.content-title{font-size:17px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tabs{background:#fff;border-bottom:1px solid #e5e5ea;display:flex;padding:0 20px;flex-shrink:0}
+.tab{padding:8px 14px;font-size:13px;cursor:pointer;color:#8e8e93;border-bottom:2px solid transparent;transition:all .15s}
+.tab.active{color:#007aff;border-bottom-color:#007aff}
+
+.note-body{flex:1;overflow-y:auto;padding:24px 28px}
+.note-html{max-width:740px;line-height:1.75;font-size:15px}
+.note-html h1{font-size:26px;margin-bottom:14px;font-weight:700}
+.note-html h2{font-size:20px;margin:20px 0 10px;font-weight:600}
+.note-html h3{font-size:17px;margin:16px 0 8px;font-weight:600}
+.note-html p{margin-bottom:10px}
+.note-html ul,.note-html ol{padding-left:22px;margin-bottom:10px}
+.note-html li{margin-bottom:4px}
+.note-html a{color:#007aff;text-decoration:none}
+.note-html a:hover{text-decoration:underline}
+.note-html strong{font-weight:600}
+.note-html em{font-style:italic}
+.note-html hr{border:none;border-top:1px solid #e5e5ea;margin:20px 0}
+.note-html table{border-collapse:collapse;width:100%;margin-bottom:12px}
+.note-html th,.note-html td{padding:6px 10px;border:1px solid #e5e5ea;font-size:13px}
+.note-html th{background:#f2f2f7;font-weight:600}
+.note-html blockquote{border-left:3px solid #007aff;padding-left:14px;color:#636366;margin:12px 0}
+.note-html pre{background:#f2f2f7;padding:14px;border-radius:8px;overflow-x:auto;font-size:13px;margin-bottom:12px;font-family:'SF Mono',Monaco,monospace}
+.note-html code{background:#f2f2f7;padding:1px 5px;border-radius:4px;font-size:12px;font-family:'SF Mono',Monaco,monospace}
+.note-html pre code{background:none;padding:0}
+.note-md{font-family:'SF Mono',Monaco,Consolas,monospace;font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:break-word;color:#1c1c1e;max-width:740px}
+
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#8e8e93;height:100%;flex:1}
+.empty-state .icon{font-size:52px}
+.empty-state p{font-size:14px}
+.loading{color:#8e8e93;font-size:13px;text-align:center;padding:32px}
+.err{color:#ff3b30;font-size:13px;padding:16px}
+
+.btn{padding:7px 14px;border:none;border-radius:7px;cursor:pointer;font-size:12px;font-weight:500;transition:opacity .15s}
+.btn:hover{opacity:.8}
+.btn-primary{background:#007aff;color:#fff}
+.btn-secondary{background:#e5e5ea;color:#1c1c1e}
+
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-thumb{background:#c7c7cc;border-radius:3px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📝 iCloud Notes Viewer</h1>
+  <div class="header-right">
+    <span class="badge" id="badge">読み込み中…</span>
+    <button class="btn btn-primary" id="dl-all-btn" onclick="downloadAll()" style="display:none">⬇ 全てダウンロード (ZIP)</button>
+  </div>
+</div>
+
+<div class="body">
+
+  <div class="sidebar">
+    <div class="sidebar-search">
+      <input id="search" type="text" placeholder="メモを検索…" oninput="filterNotes(this.value)">
+    </div>
+    <div class="note-list" id="note-list">
+      <div class="loading">メモを読み込んでいます…</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="empty-state" id="empty">
+      <div class="icon">📋</div>
+      <p>左のリストからメモを選んでください</p>
+    </div>
+
+    <div id="viewer" style="display:none;flex:1;flex-direction:column;overflow:hidden">
+      <div class="content-header">
+        <div class="content-title" id="note-title"></div>
+        <button class="btn btn-secondary" onclick="switchTab('md')" id="tab-toggle">Markdown を表示</button>
+        <button class="btn btn-primary" id="dl-btn">⬇ Markdown ダウンロード</button>
+      </div>
+      <div class="tabs">
+        <div class="tab active" id="tab-html" onclick="switchTab('html')">プレビュー</div>
+        <div class="tab" id="tab-md" onclick="switchTab('md')">Markdown ソース</div>
+      </div>
+      <div class="note-body">
+        <div id="html-view" class="note-html"></div>
+        <div id="md-view" class="note-md" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+let allNotes = [];
+let currentId = null;
+let currentTab = 'html';
+
+const $ = id => document.getElementById(id);
+
+async function init() {
+  try {
+    const r = await fetch('/api/notes');
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    allNotes = d.notes;
+    $('badge').textContent = allNotes.length + ' 件';
+    $('dl-all-btn').style.display = '';
+    renderList(allNotes);
+  } catch(e) {
+    $('note-list').innerHTML = `<div class="err">エラー: ${e.message}<br><br>macOS の「メモ」アプリへのアクセスが必要です。<br>システム設定 → プライバシーとセキュリティ → オートメーション で許可してください。</div>`;
+    $('badge').textContent = 'エラー';
+  }
+}
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('ja-JP', {year:'numeric', month:'short', day:'numeric'});
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderList(notes) {
+  if (!notes.length) {
+    $('note-list').innerHTML = '<div class="loading">メモが見つかりません</div>';
+    return;
+  }
+  $('note-list').innerHTML = notes.map(n =>
+    `<div class="note-item${n.id === currentId ? ' active' : ''}" onclick="selectNote(${JSON.stringify(n.id)})">
+      <div class="note-name">${esc(n.name || '(無題)')}</div>
+      <div class="note-meta">
+        <span>${fmtDate(n.modified)}</span>
+        ${n.folder ? `<span class="note-folder">${esc(n.folder)}</span>` : ''}
+      </div>
+    </div>`
+  ).join('');
+}
+
+function filterNotes(q) {
+  const lower = q.toLowerCase();
+  renderList(allNotes.filter(n =>
+    (n.name || '').toLowerCase().includes(lower) ||
+    (n.folder || '').toLowerCase().includes(lower)
+  ));
+}
+
+async function selectNote(id) {
+  currentId = id;
+  // リストを再描画してアクティブ状態を反映
+  filterNotes($('search').value);
+
+  $('empty').style.display = 'none';
+  $('viewer').style.display = 'flex';
+
+  const note = allNotes.find(n => n.id === id);
+  $('note-title').textContent = note ? (note.name || '(無題)') : '…';
+  $('dl-btn').onclick = () => {
+    window.location.href = '/api/download?id=' + encodeURIComponent(id);
+  };
+
+  $('html-view').innerHTML = '<div class="loading">読み込み中…</div>';
+  $('md-view').textContent = '';
+
+  try {
+    const r = await fetch('/api/note?id=' + encodeURIComponent(id));
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error);
+    $('html-view').innerHTML = d.html;
+    $('md-view').textContent = d.markdown;
+    switchTab(currentTab);
+  } catch(e) {
+    $('html-view').innerHTML = `<div class="err">エラー: ${e.message}</div>`;
+  }
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  $('tab-html').classList.toggle('active', tab === 'html');
+  $('tab-md').classList.toggle('active', tab === 'md');
+  $('html-view').style.display = tab === 'html' ? '' : 'none';
+  $('md-view').style.display = tab === 'md' ? '' : 'none';
+  $('tab-toggle').textContent = tab === 'html' ? 'Markdown を表示' : 'プレビューに戻る';
+  $('tab-toggle').onclick = () => switchTab(tab === 'html' ? 'md' : 'html');
+}
+
+function downloadAll() {
+  window.location.href = '/api/download-all';
+}
+
+init();
+</script>
+</body>
+</html>
